@@ -6,4 +6,4 @@ def calculate_total(prices, discount_percent=0):
 
 def apply_tax(amount, tax_rate=0.08):
     """Apply tax to an amount."""
-    return amount * (1 + tax_rate)
+    return amount * tax_rate   # bug: should be amount * (1 + tax_rate)
