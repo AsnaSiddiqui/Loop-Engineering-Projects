@@ -1,146 +1,119 @@
 # Project 08 — Your Own Daily Loop
 
-A project demonstrating how to design and run a daily loop using Claude Code — the final heartbeat type that completes the set of four: in-session, conditional, scheduled, and now daily.
+A capstone project integrating all six parts of loop engineering into one real, recurring chore: a docs-freshness check across every sibling docs project in this repo — read-only, isolated, and reviewed before anything is merged.
 
 ## What This Project Does
 
-This project shows you how to set up a daily loop that runs on a schedule, checks for work to do, processes it, and records its findings — all without a human needing to type a prompt each time. It's the fourth and final heartbeat type, completing the set:
+The loop checks every sibling `project_0X_*` folder for a fresh `README.md` (present, has a "Key Lesson" section, not suspiciously short), writes the findings into `freshness_report.md`, and records what it found in `progress.md`.
 
-1. **In-session** (`/loop`) — runs while the session is open (Project 01)
-2. **Conditional** (`/goal`) — runs until a real command says the work is done (Project 02)
-3. **Scheduled** (`/schedule`) — runs at fixed times regardless of session state (Project 03)
-4. **Daily** — runs once per day, typically at a set time, using the loop engine with a scheduled trigger
+It only ever reads other project folders — it never edits anything outside its own folder. Work is drafted in an isolated worktree, graded by a separate reviewer subagent, and only merged on a PASS verdict.
 
-This project demonstrates how to configure a daily loop that:
-- Scans for tasks or TODO items each morning
-- Processes what it finds
-- Records results in `progress.md` (the spine)
-- Leaves explicit notes if anything fails or needs human attention
-- Can be projected for monthly cost at a given cadence
+## The Six Parts, All Present
+
+| Part              | How it appears here                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------------------- |
+| **Heartbeat**     | Designed to run on a schedule (daily); validated here with two manual runs standing in for two days |
+| **Skill**         | `.claude/skills/daily-freshness-check/SKILL.md` carries all the steps and the hard rule about scope |
+| **Spine**         | `progress.md` — read first, updated last, every run                                                 |
+| **Worktree**      | Each run drafted in its own isolated worktree (`freshness-run-1`, `freshness-run-2`)                |
+| **Maker-checker** | An implementer drafts the report; `.claude/agents/reviewer.md` independently grades PASS/FAIL       |
+| **Connector**     | A PR is opened only on PASS, and merged into `main`                                                 |
 
 ## Files
 
-- `app.py` — a small file with 2 intentional TODO comments, simulating recurring work
-- `progress.md` — the spine: created by Run 1, read and checked by Run 2, and each subsequent run
-- `README.md` — this file
-- `.claude/skills/daily-freshness-check/SKILL.md` — the daily freshness check skill
-- `.claude/agents/reviewer.md` — the reviewer subagent (read-only)
+* `.claude/skills/daily-freshness-check/SKILL.md` — the implementer's steps
+* `.claude/agents/reviewer.md` — the read-only reviewer subagent
+* `progress.md` — the spine, with dated entries from both runs
+* `freshness_report.md` — the latest freshness findings
+* `README.md` — this file
 
-## How to Use
+## How This Was Built
 
-### Step 1: Start Claude Code in This Folder
+### Step 1: Measure a Safe Scope
+
+The skill's hard rule: only `Read` other project folders, only `Edit`/`Write` inside `project_08_your_own_daily_loop/`.
+
+The reviewer's first check is always whether that boundary held.
+
+### Step 2: Run 1 — Isolated Worktree
 
 ```bash
+git worktree add ../freshness-run-1 -b claude/freshness-run-1
+cd ../freshness-run-1/project_08_your_own_daily_loop
 claude
 ```
 
-Trust the folder when asked.
-
-### Step 2: Set Up the Daily Loop
-
-Inside Claude Code, configure the daily loop. The loop will:
-
-1. **Read `progress.md`** if it exists, to recognize what was already found
-2. **Scan for TODO comments** in `app.py` (or whatever file contains the work)
-3. **Update `progress.md`** with a dated entry of what was found
-4. **Leave a clear note** if anything doesn't work (e.g., a path that doesn't exist)
-
-Run the loop once to seed `progress.md`:
+Use the daily-freshness-check skill:
 
 ```text
-Read progress.md if it exists in this folder. Then scan this repo for open TODO comments in app.py. Write a short summary of what you found. Then update progress.md: add a "Done" entry with today's date listing the TODOs you found, in this format:
-
-### Done
-
-- <date>: found N TODO comments: <list them briefly>
-
-### Open / needs a human
-
-- <anything unresolved>
+Use the daily-freshness-check skill.
 ```
 
-### Step 3: Run the Loop a Second Time
+Result: 7 of 8 sibling projects had a fresh README; `project_08` itself was missing one (an intentionally honest finding — the loop caught its own gap).
 
-Give the **exact same prompt** again. This time Claude reads `progress.md` first, sees the TODOs are already recorded, and does **not** add a duplicate entry — it recognizes the work as already done.
+The reviewer subagent graded this **PASS** after confirming scope, accuracy, and a dated `progress.md` entry. The PR was merged into `main`.
 
-### Step 4: Confirm the Spine Worked
+### Step 3: Run 2 — Proving the Spine and Closing the Gap
 
 ```bash
-cat progress.md
+git worktree add ../freshness-run-2 -b claude/freshness-run-2
+cd ../freshness-run-2/project_08_your_own_daily_loop
+claude
 ```
 
-There should be only **one** "Done" entry, not two. If Run 2 had added a second identical entry, the spine would not be working.
-
-### Step 5: (Optional) Project Monthly Cost
-
-Run `/cost` after one beat, then multiply by your cadence:
-
-```
-Daily cadence:  $<cost>/run × 30 days = ~$<projected>/month
-Hourly cadence: $<cost>/run × 24 × 30     = ~$<projected>/month
-```
-
-### Step 6: Sabotage the Loop on Purpose (Optional)
-
-Give Claude a prompt that can never succeed — a path that doesn't exist — and explicitly require it to leave a clear failure note:
+Use the daily-freshness-check skill:
 
 ```text
-Read progress.md if it exists in this folder. Then scan this repo for open TODO comments in nonexistent_folder/*.py files. If the folder or files don't exist, log a clear "needs a human" note in progress.md explaining exactly what failed and why, with today's date. Do NOT silently skip this — the note must be explicit enough that someone reading only progress.md later understands the failure without re-running anything.
+Use the daily-freshness-check skill.
 ```
 
-### Step 7: Diagnose Using Only the Spine
+This run read `progress.md` from Run 1, saw the missing-README finding was already known, created the missing `README.md` for `project_08` itself, and updated the report to 8/8 fresh.
+
+The reviewer subagent confirmed **PASS**, and also confirmed a report inconsistency spotted mid-run had already been resolved before the final check. The PR was merged.
+
+### Step 4: Clean Up
 
 ```bash
-cat progress.md
+git worktree remove ../freshness-run-1 --force
+git worktree remove ../freshness-run-2 --force
+git branch -D claude/freshness-run-1 claude/freshness-run-2
+git push origin --delete claude/freshness-run-1
+git push origin --delete claude/freshness-run-2
 ```
 
-Without asking Claude anything else, and without re-running the loop, answer from this file alone:
-- What failed?
-- When did it fail?
-- Why did it fail?
-- Did the loop leave an explicit note, or fail silently?
+## Result
 
-## How the Loop Works
+* **Run 1:** 7/8 projects fresh; `project_08` flagged as missing its own README — reviewer PASS.
+* **Run 2:** Spine correctly built on Run 1 instead of rediscovering it; `project_08`'s README was created; 8/8 projects fresh — reviewer PASS.
 
-This is a **daily loop** (Concept 14), the fourth heartbeat type:
+## Honest Notes on Scope (This Is a Shortened Capstone)
 
-1. **Scheduled trigger** — the loop fires at a set time each day (e.g., 9am), independent of whether a Claude session is open
-2. **Read the spine first** — every run reads `progress.md` before doing any work, so it knows what has already been found
-3. **Do the work** — scan for TODO comments, process tasks, or whatever the loop is designed to do
-4. **Update the spine last** — write a dated entry recording what was found, so the next run can build on it instead of repeating it
-5. **The model itself has no memory between runs** — Claude Code forgets everything once a session ends. The only reason later runs "remember" is that the state lived outside the model, in `progress.md` on disk
-6. **In production, this becomes a real schedule** — with `/schedule every day at 9am, ...`, this same prompt would run daily unattended, and `progress.md` would keep growing as the real memory of the loop over time
-7. **Cost awareness** — each run costs money; knowing the per-run cost at your cadence lets you project monthly spend (Concept 13's math)
+The book specifies running this unattended for a full week before calling it trustworthy.
+
+That wasn't practical here, so this capstone was validated with **two manual runs** standing in for two days, rather than seven days of unattended scheduled execution.
+
+The full six-part shape is real and working; the "ran for a week and I still read every output" trust-building step is the part that was compressed.
+
+Two other real issues came up while building this, both worth recording honestly rather than hiding:
+
+1. **A git merge did not carry file content on the first attempt** — `gh pr merge` reported success, but the committed `progress.md` on `main` stayed at its baseline empty state. This was traced to running `git add`/`git commit` from the wrong working directory (the repo root instead of the worktree) before pushing, so the first "Run 1" commit was empty of real content. It was fixed by committing directly from inside the worktree folder.
+
+2. **The reviewer subagent intermittently returned garbled or failed responses** when run over an OpenRouter-backed model, requiring a retry with an explicit "show me the raw verdict" prompt before a clean PASS was obtained. A production version of this loop should assume occasional reviewer-call failures and retry or escalate rather than silently accepting an unclear response.
 
 ## Requirements
 
-- Git Bash (or another bash-compatible shell) on Windows
-- Claude Code CLI installed and logged in
-- Python 3.x (for running `app.py` if needed)
-- No external packages required for the basic loop
-
-## Project Structure
-
-This is a throwaway learning project, built on concepts from Projects 01–07. The key reusable parts are:
-
-- `progress.md` — the spine that carries state between runs
-- The daily loop prompt pattern: read spine → do work → update spine
-- The cost-projection math: per-run cost × cadence = monthly cost
+* Git Bash (or another bash-compatible shell) on Windows
+* Claude Code CLI installed and logged in
+* GitHub CLI (`gh`), authenticated
 
 ## Key Lesson
 
-A daily loop needs three things to be trustworthy in production: a **scheduled trigger** that fires it without a human typing a prompt, a **progress file** (`progress.md`) that every run reads first and updates last so state persists across sessions, and **cost awareness** so you know what the loop costs at its real cadence. Without all three, it's just repetition without reliable state, timing, or economics — and you won't know it's broken until much later.
+A daily loop needs three things to be trustworthy in production:
 
-**The spine is the single most important part:** `progress.md`, read at the start and updated at the end of every run, is what turns a daily repetition into a real loop with memory, debuggability, and predictable cost. Without it, every run is identical — the same first step, repeating forever, no matter how smart the model is.
+1. A scheduled trigger that fires it without a human typing a prompt.
+2. A progress file that every run reads first and updates last so state survives across sessions.
+3. Cost awareness so you know what the loop costs at its real cadence.
 
----
+Getting the six-part shape right — heartbeat, skill, spine, worktree, maker-checker, connector — is necessary but not sufficient.
 
-**This completes the set of four heartbeat types** in the freshness-run-2 series:
-- Project 01: In-session loop (`/loop`)
-- Project 02: Conditional loop (`/goal`)
-- Project 03: Scheduled loop with memory (`/schedule`)
-- Project 04: Fix loop with a real checker (maker-checker)
-- Project 05: Engine, not a loop (three bugs, three worktrees)
-- Project 06: Event-driven loop (GitHub PR trigger)
-- Project 07: Observability and cost measurement
-- **Project 08: Daily loop** (scheduled daily trigger + progress spine)
+Trust is built by watching it run for real, repeatedly, and by fixing the mechanical failures (a wrong working directory, a flaky reviewer call) the first few times they happen, before letting it run unattended.
